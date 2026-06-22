@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug HAR Upload</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #1a1a1a; color: #fff; }
+        #drop-zone {
+            border: 2px dashed #666;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+        #drop-zone:hover {
+            border-color: #4f46e5;
+            background: #2a2a2a;
+        }
+        .log {
+            background: #2a2a2a;
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 3px solid #4f46e5;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .error { border-left-color: #ef4444; }
+        .success { border-left-color: #22c55e; }
+    </style>
+</head>
+<body>
+    <h1>HAR Upload Debug Test</h1>
+    <div id="logs"></div>
+
+    <div id="drop-zone">
+        <input type="file" id="file-input" accept=".har" style="display: none;">
+        <h2>Click here or drag & drop a .har file</h2>
+        <p>Watch the logs below to see what happens</p>
+    </div>
+
+    <div id="result"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = 'log ' + type;
+            div.textContent = new Date().toLocaleTimeString() + ' - ' + message;
+            document.getElementById('logs').appendChild(div);
+            console.log(message);
+        }
+
+        log('Script loaded');
+
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+
+        if (!dropZone) {
+            log('ERROR: drop-zone not found!', 'error');
+        } else {
+            log('✓ drop-zone found', 'success');
+        }
+
+        if (!fileInput) {
+            log('ERROR: file-input not found!', 'error');
+        } else {
+            log('✓ file-input found', 'success');
+        }
+
+        // Test 1: Click handler
+        dropZone.addEventListener('click', function() {
+            log('Drop zone clicked!', 'success');
+            fileInput.click();
+        });
+        log('✓ Click listener attached');
+
+        // Test 2: File input change
+        fileInput.addEventListener('change', function(e) {
+            log('File input changed!', 'success');
+            const file = e.target.files[0];
+            if (file) {
+                log('File selected: ' + file.name + ' (' + file.size + ' bytes)', 'success');
+                processFile(file);
+            } else {
+                log('No file selected', 'error');
+            }
+        });
+        log('✓ Change listener attached');
+
+        // Test 3: Drag and drop
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            log('File dragged over drop zone');
+            dropZone.style.background = '#2a2a2a';
+        });
+
+        dropZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            log('File dragged out of drop zone');
+            dropZone.style.background = '';
+        });
+
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            log('File dropped!', 'success');
+            dropZone.style.background = '';
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                log('Dropped file: ' + files[0].name, 'success');
+                processFile(files[0]);
+            } else {
+                log('No files in drop', 'error');
+            }
+        });
+        log('✓ Drag & drop listeners attached');
+
+        function processFile(file) {
+            log('Processing file: ' + file.name);
+            const reader = new FileReader();
+
+            reader.onload = function(event) {
+                try {
+                    log('File read complete, parsing JSON...');
+                    const json = JSON.parse(event.target.result);
+
+                    if (json.log && json.log.entries) {
+                        log('✓ Valid HAR file!', 'success');
+                        log('Found ' + json.log.entries.length + ' entries', 'success');
+
+                        document.getElementById('result').innerHTML =
+                            '<h3 style="color: #22c55e">✓ HAR File Valid!</h3>' +
+                            '<p>Entries: ' + json.log.entries.length + '</p>' +
+                            '<p>Version: ' + (json.log.version || 'unknown') + '</p>';
+                    } else {
+                        log('✗ Invalid HAR structure (missing log.entries)', 'error');
+                        document.getElementById('result').innerHTML =
+                            '<h3 style="color: #ef4444">✗ Invalid HAR Structure</h3>';
+                    }
+                } catch (err) {
+                    log('✗ JSON parse error: ' + err.message, 'error');
+                    document.getElementById('result').innerHTML =
+                        '<h3 style="color: #ef4444">✗ JSON Parse Error</h3>' +
+                        '<p>' + err.message + '</p>';
+                }
+            };
+
+            reader.onerror = function() {
+                log('✗ File read error', 'error');
+            };
+
+            log('Starting FileReader...');
+            reader.readAsText(file);
+        }
+
+        log('All initialization complete!', 'success');
+    </script>
+</body>
+</html>

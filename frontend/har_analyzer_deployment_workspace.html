@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdvanceHAR - Advanced HAR Analyzer & Sanitizer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=300;400;500;600;700;800&family=JetBrains+Mono:wght=400;500;600&display=swap" rel="stylesheet">
+    <!-- Marked.js for rendering beautiful AI Markdown reports -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="./static/css/main.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white transition-colors duration-200">
+
+    <!-- Top Navigation Header -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="p-2 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-xl text-white shadow-lg shadow-indigo-500/20">
+                <!-- SVG Network Icon -->
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2" />
+                </svg>
+            </div>
+            <div>
+                <div class="flex items-center space-x-2">
+                    <h1 class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-indigo-400 bg-clip-text text-transparent">AdvanceHAR</h1>
+                    <span class="px-2 py-0.5 text-[10px] font-semibold tracking-wider text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded-full uppercase">Enterprise</span>
+                </div>
+                <p class="text-xs text-slate-400 font-medium">Production-Grade HTTP Archive Deep Analyzer</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-4">
+            <!-- Demo Loader -->
+            <button onclick="loadDemoHAR()" class="px-4 py-2 text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-lg transition-all duration-200 flex items-center space-x-2">
+                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span>Load Demo HAR</span>
+            </button>
+            
+            <!-- Heroku Deploy Status Banner -->
+            <a href="#deployment" onclick="switchTab('deployment')" class="hidden md:flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer hover:bg-emerald-500/20 transition-all duration-150">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>Heroku-Ready Boilerplate Included</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- App Layout Container -->
+    <main class="flex-1 max-w-[1600px] w-full mx-auto p-4 lg:p-6 grid grid-cols-1 xl:grid-cols-4 gap-6">
+        
+        <!-- Left Sidebar - Upload Panel & Active Metrics -->
+        <div class="xl:col-span-1 space-y-6">
+            <!-- 1. File Upload / Drop Area -->
+            <div class="bg-slate-800/50 border border-slate-800 rounded-2xl p-5 hover:border-indigo-500/30 transition-all duration-300 relative group">
+                <div id="drop-zone" class="border-2 border-dashed border-slate-700 hover:border-indigo-500/50 rounded-xl p-6 text-center cursor-pointer transition-all duration-200 bg-slate-900/40">
+                    <input type="file" id="file-input" accept=".har" class="hidden" onchange="handleFileSelect(event)">
+                    
+                    <svg class="w-12 h-12 text-slate-500 group-hover:text-indigo-400 mx-auto mb-3 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <p class="font-semibold text-sm text-slate-200">Drag & Drop HAR file</p>
+                    <p class="text-xs text-slate-400 mt-1">or click to browse local files</p>
+                    <p class="text-[10px] text-indigo-400/80 font-mono mt-3">Supports sizes up to 250MB</p>
+                </div>
+            </div>
+
+            <!-- 2. Streamlined Operational Summary Stats -->
+            <div class="bg-slate-800/30 border border-slate-800/80 rounded-2xl p-5 space-y-4">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                    <span>Active Session Metrics</span>
+                    <span id="active-filename" class="text-[10px] text-slate-500 font-mono truncate max-w-[120px] normal-case">No file loaded</span>
+                </h3>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-900/40 border border-slate-800 p-3 rounded-xl">
+                        <p class="text-xs text-slate-400 font-medium">Requests</p>
+                        <p id="stat-total-reqs" class="text-xl font-bold text-slate-100 font-mono mt-0.5">0</p>
+                    </div>
+                    <div class="bg-slate-900/40 border border-slate-800 p-3 rounded-xl">
+                        <p class="text-xs text-slate-400 font-medium">Page Size</p>
+                        <p id="stat-total-size" class="text-xl font-bold text-slate-100 font-mono mt-0.5">0 KB</p>
+                    </div>
+                    <div class="bg-slate-900/40 border border-slate-800 p-3 rounded-xl">
+                        <p class="text-xs text-slate-400 font-medium">Load Time</p>
+                        <p id="stat-load-time" class="text-xl font-bold text-slate-100 font-mono mt-0.5">0 ms</p>
+                    </div>
+                    <div class="bg-slate-900/40 border border-slate-800 p-3 rounded-xl">
+                        <p class="text-xs text-slate-400 font-medium">3rd-Parties</p>
+                        <p id="stat-third-party" class="text-xl font-bold text-indigo-400 font-mono mt-0.5">0</p>
+                    </div>
+                </div>
+
+                <div class="space-y-2 pt-2 border-t border-slate-800/80">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400 flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1.5"></span> Successful (2xx)</span>
+                        <span id="stat-success-count" class="font-mono font-bold">0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400 flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 mr-1.5"></span> Redirects (3xx)</span>
+                        <span id="stat-redirect-count" class="font-mono font-bold">0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400 flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 mr-1.5"></span> Client Errors (4xx)</span>
+                        <span id="stat-client-err-count" class="font-mono font-bold text-amber-400">0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400 flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 mr-1.5"></span> Server Errors (5xx)</span>
+                        <span id="stat-server-err-count" class="font-mono font-bold text-rose-400">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Call Finder and Explorer -->
+            <div class="bg-slate-800/30 border border-slate-800/80 rounded-2xl p-5 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center space-x-1">
+                        <span>✨</span>
+                        <span>Interactive Call Locator</span>
+                    </h3>
+                    <span id="locator-badge" class="hidden text-[10px] bg-indigo-500/10 text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded border border-indigo-500/20">0 found</span>
+                </div>
+                <div class="space-y-2">
+                    <div class="relative flex space-x-2">
+                        <input type="text" id="locator-input" placeholder="e.g. static/js, analytics, api" onkeydown="if(event.key === 'Enter') locateCallsFromInput()" class="w-full bg-slate-900 border border-slate-700/80 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 rounded-lg py-1.5 px-3 text-xs text-slate-100 outline-none transition-all duration-200">
+                        <button onclick="locateCallsFromInput()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-all duration-150 flex-shrink-0 flex items-center space-x-1 shadow-md shadow-indigo-600/10">
+                            <span>Locate</span>
+                        </button>
+                    </div>
+                    <p class="text-[9px] text-slate-500 leading-snug">Type any keyword, path, or domain name to explore matches and review details immediately.</p>
+                </div>
+
+                <!-- Instant result list built dynamically inside sidebar -->
+                <div id="locator-results-wrapper" class="hidden space-y-2">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                        <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Located Calls List</span>
+                        <button onclick="clearLocatorMatches()" class="text-[10px] text-slate-400 hover:text-slate-200 font-medium">Clear</button>
+                    </div>
+                    <div id="locator-results" class="max-h-[180px] overflow-y-auto custom-scrollbar space-y-1.5 pr-1">
+                        <!-- Items injected dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Dynamic Filter Controls (Syncs instantly with charts) -->
+            <div class="bg-slate-800/30 border border-slate-800/80 rounded-2xl p-5 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Tactical Filters</h3>
+                    <button onclick="resetFilters()" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold">Reset All</button>
+                </div>
+
+                <!-- Text Search -->
+                <div class="space-y-1">
+                    <label class="text-xs text-slate-400 font-semibold">Filter by URL or Path</label>
+                    <div class="relative">
+                        <input type="text" id="filter-search" oninput="applyFilters()" placeholder="e.g. /api/v1/checkout" class="w-full bg-slate-900 border border-slate-700/80 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 rounded-lg py-1.5 pl-3 pr-8 text-xs text-slate-100 outline-none transition-all duration-200">
+                        <svg class="w-4 h-4 text-slate-500 absolute right-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </div>
+                </div>
+
+                <!-- HTTP Method / Request Layer Filter -->
+                <div class="space-y-1">
+                    <label class="text-xs text-slate-400 font-semibold">Filter Type / Method</label>
+                    <select id="filter-method" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-700/80 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 rounded-lg py-1.5 px-3 text-xs text-slate-100 outline-none transition-all duration-200">
+                        <option value="ALL">All Requests</option>
+                        <option value="LATENCY_FAST" class="text-emerald-400 font-semibold">🟢 Fast Latency (&lt; Green Limit)</option>
+                        <option value="LATENCY_WARNING" class="text-amber-400 font-semibold">🟡 Warning Latency (Warning Range)</option>
+                        <option value="LATENCY_CRITICAL" class="text-rose-400 font-semibold">🔴 Critical Latency (&gt; Red Limit)</option>
+                        <option value="FRONTEND" class="text-slate-300 font-semibold">✦ Frontend Assets (CSS, JS, Media)</option>
+                        <option value="BACKEND" class="text-slate-300 font-semibold">✦ Backend Requests (APIs, JSON)</option>
+                        <option value="GET">GET Methods</option>
+                        <option value="POST">POST Methods</option>
+                        <option value="PUT">PUT Methods</option>
+                        <option value="DELETE">DELETE Methods</option>
+                        <option value="PATCH">PATCH Methods</option>
+                        <option value="OPTIONS">OPTIONS Methods</option>
+                    </select>
+                </div>
+
+                <!-- Content Type (MIME) Categories -->
+                <div class="space-y-1.5">
+                    <label class="text-xs text-slate-400 font-semibold">Asset Category</label>
+                    <div class="grid grid-cols-2 gap-1.5" id="mime-buttons-container">
+                        <button onclick="toggleMimeFilter('all')" id="mime-btn-all" class="mime-btn px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white border border-indigo-500 transition-all duration-150">All Assets</button>
+                        <button onclick="toggleMimeFilter('xhr')" id="mime-btn-xhr" class="mime-btn px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200 transition-all duration-150">API / Fetch</button>
+                        <button onclick="toggleMimeFilter('document')" id="mime-btn-document" class="mime-btn px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200 transition-all duration-150">Documents</button>
+                        <button onclick="toggleMimeFilter('script')" id="mime-btn-script" class="mime-btn px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200 transition-all duration-150">Scripts</button>
+                        <button onclick="toggleMimeFilter('style')" id="mime-btn-style" class="mime-btn px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200 transition-all duration-150">Stylesheets</button>
+                        <button onclick="toggleMimeFilter('image')" id="mime-btn-image" class="mime-btn px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200 transition-all duration-150">Images</button>
+                    </div>
+                </div>
+
+                <!-- Host Filter -->
+                <div class="space-y-1">
+                    <label class="text-xs text-slate-400 font-semibold">Origin / Host</label>
+                    <select id="filter-host" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-700/80 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 rounded-lg py-1.5 px-3 text-xs text-slate-100 outline-none transition-all duration-200">
+                        <option value="ALL">All Hostnames</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Working Pane - Tabbed interface for Analysis, Sanitizer, GDPR, Deployment Boilerplates -->
+        <div class="xl:col-span-3 space-y-6 flex flex-col">
+            
+            <!-- Navigation Tabs -->
+            <div class="flex border-b border-slate-800 bg-slate-900/50 p-1 rounded-xl overflow-x-auto no-scrollbar">
+                <button onclick="switchTab('waterfall')" id="tab-waterfall-btn" class="flex-1 py-2.5 text-xs font-semibold rounded-lg text-slate-300 hover:text-white flex items-center justify-center space-x-2 transition-all duration-200 bg-slate-800 text-white min-w-[130px]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+                    <span>Waterfall & Diagnostics</span>
+                </button>
+                <button onclick="switchTab('flow-pipeline')" id="tab-flow-pipeline-btn" class="flex-1 py-2.5 text-xs font-semibold rounded-lg text-teal-400 hover:text-teal-300 flex items-center justify-center space-x-2 transition-all duration-200 min-w-[130px]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <span>✦ Latency Flow Pathway</span>
+                </button>
+                <button onclick="switchTab('ai-suite')" id="tab-ai-suite-btn" class="flex-1 py-2.5 text-xs font-semibold rounded-lg text-indigo-400 hover:text-indigo-300 flex items-center justify-center space-x-2 transition-all duration-200 min-w-[130px]">
+                    <span>✨ AI Assistant Suite</span>
+                </button>
+                <button onclick="switchTab('sanitizer')" id="tab-sanitizer-btn" class="flex-1 py-2.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center space-x-2 transition-all duration-200 min-w-[130px]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                    <span>Local Sanitizer</span>
+                </button>
+                <button onclick="switchTab('consent')" id="tab-consent-btn" class="flex-1 py-2.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 flex items-center justify-center space-x-2 transition-all duration-200 min-w-[130px]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    <span>Consent Audit</span>
+                </button>
+               
+            </div>
+
+            <!-- Content Area: 1. Waterfall & Diagnostics Panel -->
+            <div id="panel-waterfall" class="tab-panel space-y-6">
+                <!-- Action / Notification Bar -->
+                <div id="initial-state-indicator" class="bg-indigo-950/20 border border-indigo-500/20 rounded-2xl p-8 text-center space-y-4">
+                    <div class="p-3 bg-indigo-500/10 rounded-full w-fit mx-auto">
+                        <svg class="w-8 h-8 text-indigo-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/></svg>
+                    </div>
+                    <div>
+                        <h4 class="text-base font-bold text-slate-100">Unlock Enterprise-Grade HAR Diagnostics</h4>
+                        <p class="text-sm text-slate-400 max-w-md mx-auto mt-1">Upload a real-world web session capture, or load our pre-populated mock dataset to test search capabilities, timeline rendering, and status filters instantly.</p>
+                    </div>
+                    <button onclick="loadDemoHAR()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition-all duration-150">Load Interactive Demo Session</button>
+                </div>
+
+                <!-- Custom Notifications Box -->
+                <div id="notification-box" class="hidden bg-slate-800/80 border border-slate-700/60 p-4 rounded-xl flex items-center justify-between text-xs text-slate-300">
+                    <span id="notification-message">File successfully parsed with no critical errors!</span>
+                    <button onclick="dismissNotification()" class="text-slate-500 hover:text-slate-300">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <!-- The Interactive Network Waterfall Visualization Chart -->
+                <div id="waterfall-canvas-container" class="hidden bg-slate-800/30 border border-slate-800/80 rounded-2xl p-5 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-100">Sequence Chronological Timeline</h3>
+                            <p class="text-xs text-slate-400">Total requests parsed: <span id="waterfall-count" class="font-mono text-indigo-400 font-bold">0</span></p>
+                        </div>
+                        
+                        <!-- Timing Legend -->
+                        <div class="hidden md:flex items-center space-x-4 text-[10px] font-semibold text-slate-400">
+                            <span class="flex items-center"><span class="w-2.5 h-1.5 bg-slate-500 rounded-sm mr-1"></span>Blocked</span>
+                            <span class="flex items-center"><span class="w-2.5 h-1.5 bg-orange-400 rounded-sm mr-1"></span>DNS</span>
+                            <span class="flex items-center"><span class="w-2.5 h-1.5 bg-violet-400 rounded-sm mr-1"></span>Connect</span>
+                            <span class="flex items-center"><span class="w-2.5 h-1.5 bg-amber-400 rounded-sm mr-1"></span>SSL</span>
+                            <span class="flex items-center"><span class="w-2.5 h-1.5 bg-emerald-400 rounded-sm mr-1"></span>TTFB</span>
+                            <span class="flex items-center"><span class="w-2.5 h-1.5 bg-sky-400 rounded-sm mr-1"></span>Download</span>
+                        </div>
+                    </div>
+
+                    <!-- Waterfall Grid -->
+                    <div class="overflow-x-auto custom-scrollbar border border-slate-800 rounded-xl bg-slate-950/40">
+                        <!-- Table structure for clean alignment -->
+                        <div class="min-w-[800px] divide-y divide-slate-900">
+                            <!-- Header Row -->
+                            <div class="grid grid-cols-12 gap-2 p-3 bg-slate-900/80 text-[10px] uppercase font-bold tracking-wider text-slate-400 sticky top-0">
+                                <div class="col-span-3">URL Path / Host</div>
+                                <div class="col-span-1 text-center">Method</div>
+                                <div class="col-span-1 text-center">Status</div>
+                                <div class="col-span-1 text-right">Size</div>
+                                <div class="col-span-1 text-right">Time</div>
+                                <div class="col-span-5 relative">
+                                    <span>Timeline (Total Duration)</span>
+                                    <div class="absolute inset-y-0 right-0 flex justify-between w-full h-full border-l border-r border-slate-800/40 text-[8px] select-none pointer-events-none">
+                                        <span class="pl-1 text-slate-600">0ms</span>
+                                        <span class="text-slate-600">50%</span>
+                                        <span class="pr-1 text-slate-600">100%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Network Elements Rows -->
+                            <div id="waterfall-rows" class="divide-y divide-slate-800/40 max-h-[500px] overflow-y-auto custom-scrollbar">
+                                <!-- Generated Dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Network Detail Drawer Overlay (Opens on waterfall row click) -->
+                <div id="details-drawer" class="hidden bg-slate-800 border border-slate-700 rounded-2xl p-5 space-y-4">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span id="detail-method" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-indigo-500/20 text-indigo-300">GET</span>
+                            <h4 id="detail-url" class="text-sm font-bold text-slate-100 font-mono break-all mt-2 max-w-2xl">https://api.domain.com/v1/auth</h4>
+                        </div>
+                        <button onclick="closeDetails()" class="p-1.5 bg-slate-900 border border-slate-700 text-slate-400 hover:text-slate-200 rounded-lg">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- Details Tab navigation -->
+                    <div class="flex border-b border-slate-700 bg-slate-900/30 p-1 rounded-lg overflow-x-auto no-scrollbar">
+                        <button onclick="switchDetailSubTab('headers')" id="subtab-headers" class="flex-1 py-1 px-3 text-xs font-semibold rounded bg-slate-800 text-slate-100 whitespace-nowrap">Headers</button>
+                        <button onclick="switchDetailSubTab('cookies')" id="subtab-cookies" class="flex-1 py-1 px-3 text-xs font-semibold rounded text-slate-400 hover:text-slate-200 whitespace-nowrap">Cookies</button>
+                        <button onclick="switchDetailSubTab('timing')" id="subtab-timing" class="flex-1 py-1 px-3 text-xs font-semibold rounded text-slate-400 hover:text-slate-200 whitespace-nowrap">Timings</button>
+                        <button onclick="switchDetailSubTab('response')" id="subtab-response" class="flex-1 py-1 px-3 text-xs font-semibold rounded text-indigo-400 hover:text-indigo-300 whitespace-nowrap">✦ Response Payload</button>
+                        <button onclick="switchDetailSubTab('ai-explainer')" id="subtab-ai-explainer" class="flex-1 py-1 px-3 text-xs font-semibold rounded text-indigo-400 hover:text-indigo-300 whitespace-nowrap">✨ AI Assistant</button>
+                    </div>
+
+                    <!-- Details Sub-Panels -->
+                    <div id="detail-sub-headers" class="sub-panel text-xs space-y-3 font-mono">
+                        <div>
+                            <h5 class="font-bold text-indigo-400 mb-1 border-b border-slate-700 pb-0.5">Request Headers</h5>
+                            <div id="detail-req-headers" class="space-y-1 max-h-[150px] overflow-y-auto custom-scrollbar"></div>
+                        </div>
+                        <div>
+                            <h5 class="font-bold text-indigo-400 mb-1 border-b border-slate-700 pb-0.5">Response Headers</h5>
+                            <div id="detail-res-headers" class="space-y-1 max-h-[150px] overflow-y-auto custom-scrollbar"></div>
+                        </div>
+                    </div>
+
+                    <div id="detail-sub-cookies" class="sub-panel hidden text-xs font-mono space-y-2">
+                        <div id="detail-cookies-content" class="max-h-[250px] overflow-y-auto custom-scrollbar space-y-2">
+                            <!-- Injected -->
+                        </div>
+                    </div>
+
+                    <div id="detail-sub-timing" class="sub-panel hidden text-xs space-y-3">
+                        <h5 class="font-bold text-indigo-400 border-b border-slate-700 pb-0.5 font-mono">Exact Phase Breakdowns (ms)</h5>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-1.5 font-semibold">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400 flex items-center"><span class="w-2.5 h-2.5 bg-slate-500 rounded mr-1"></span> Blocked</span>
+                                    <span id="t-blocked" class="font-mono">0ms</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400 flex items-center"><span class="w-2.5 h-2.5 bg-orange-400 rounded mr-1"></span> DNS Lookup</span>
+                                    <span id="t-dns" class="font-mono">0ms</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400 flex items-center"><span class="w-2.5 h-2.5 bg-violet-400 rounded mr-1"></span> TCP Connect</span>
+                                    <span id="t-connect" class="font-mono">0ms</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400 flex items-center"><span class="w-2.5 h-2.5 bg-amber-400 rounded mr-1"></span> SSL Handshake</span>
+                                    <span id="t-ssl" class="font-mono">0ms</span>
+                                </div>
+                            </div>
+                            <div class="space-y-1.5 font-semibold">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400 flex items-center"><span class="w-2.5 h-2.5 bg-emerald-400 rounded mr-1"></span> Wait / TTFB</span>
+                                    <span id="t-wait" class="font-mono">0ms</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400 flex items-center"><span class="w-2.5 h-2.5 bg-sky-400 rounded mr-1"></span> Content Download</span>
+                                    <span id="t-receive" class="font-mono">0ms</span>
+                                </div>
+                                <div class="flex justify-between border-t border-slate-700 pt-1.5 font-bold">
+                                    <span class="text-slate-200">Total Duration</span>
+                                    <span id="t-total" class="font-mono text-indigo-400">0ms</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RESPONSE CONTENT DISPLAY -->
+                    <div id="detail-sub-response" class="sub-panel hidden space-y-3 font-sans">
+                        <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+                            <div class="space-y-0.5">
+                                <h5 class="font-bold text-indigo-400 text-xs font-mono uppercase tracking-wider">Response Body content</h5>
+                                <p id="response-meta" class="text-[10px] text-slate-400 font-mono"></p>
+                            </div>
+                            <button onclick="copyResponseContent()" class="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-lg text-slate-300 hover:text-white text-[11px] font-semibold transition-all duration-150 flex items-center space-x-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                <span id="copy-response-btn-text">Copy Response</span>
+                            </button>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800/80 rounded-xl p-4 overflow-hidden">
+                            <pre class="max-h-[300px] overflow-y-auto custom-scrollbar font-mono text-[11px] leading-relaxed select-all text-slate-300 break-words whitespace-pre-wrap"><code id="response-content-text">No payload body parsed.</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Sub-Panel: AI Request Explainer -->
+                    <div id="detail-sub-ai-explainer" class="sub-panel hidden space-y-4">
+                        <div class="flex items-center justify-between">
+                            <p class="text-xs text-slate-400">Analyze endpoint behaviors, parameters, and fetch structural mocks instantly.</p>
+                            <button onclick="runRequestAiExplainer()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-all duration-150 flex items-center space-x-1 shadow-md shadow-indigo-500/10">
+                                <span>✨ Explain Request with AI</span>
+                            </button>
+                        </div>
+                        <div id="ai-explainer-output-container" class="hidden bg-slate-950/80 rounded-xl border border-slate-800 p-4 max-h-[300px] overflow-y-auto custom-scrollbar font-sans text-xs">
+                            <div id="ai-explainer-output" class="prose-custom"></div>
+                        </div>
+                        <div id="ai-explainer-loading" class="hidden py-12 text-center space-y-3">
+                            <div class="relative w-8 h-8 mx-auto">
+                                <div class="absolute inset-0 rounded-full border-2 border-slate-800"></div>
+                                <div class="absolute inset-0 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin"></div>
+                            </div>
+                            <p class="text-xs text-indigo-400 font-medium animate-pulse">Consulting Gemini Architect...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: Latency Flow Pathway (Chronological Sequence Map) -->
+            <div id="panel-flow-pipeline" class="tab-panel hidden space-y-6">
+                <!-- Interactive Threshold Configs Panel -->
+                <div class="bg-slate-800/30 border border-slate-800 rounded-2xl p-5 space-y-4">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-100">Threshold Custom Tuning</h3>
+                            <p class="text-xs text-slate-400">Drag to adjust millisecond parameters. The sequence map highlights items using relative color codes.</p>
+                        </div>
+                        <!-- Color Legend overview -->
+                        <div class="flex items-center space-x-4 text-xs font-medium">
+                            <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-emerald-500 mr-1.5"></span> Green (Fast)</span>
+                            <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-amber-500 mr-1.5"></span> Orange (Warning)</span>
+                            <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-rose-500 mr-1.5"></span> Red (Critical)</span>
+                        </div>
+                    </div>
+
+                    <!-- Ranges Configuration -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-slate-800/60">
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs font-mono">
+                                <span class="text-slate-400">Green Threshold (Fast Limit)</span>
+                                <span class="text-emerald-400 font-bold"><span id="green-limit-val">200</span> ms</span>
+                            </div>
+                            <input type="range" id="slider-green-limit" min="50" max="500" step="10" value="200" oninput="updateFlowThresholds()" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                        </div>
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between text-xs font-mono">
+                                <span class="text-slate-400">Red Threshold (Slow Limit)</span>
+                                <span class="text-rose-400 font-bold"><span id="red-limit-val">800</span> ms</span>
+                            </div>
+                            <input type="range" id="slider-red-limit" min="500" max="3000" step="50" value="800" oninput="updateFlowThresholds()" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-rose-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Latency Map Distribution Board -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="bg-emerald-950/20 border border-emerald-500/20 p-4 rounded-xl flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] text-emerald-400/80 font-bold uppercase tracking-wider font-mono">Fast (Green)</p>
+                            <p id="flow-count-green" class="text-xl font-extrabold text-emerald-400 font-mono mt-0.5">0</p>
+                        </div>
+                        <span class="p-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg">🟢</span>
+                    </div>
+                    <div class="bg-amber-950/20 border border-amber-500/20 p-4 rounded-xl flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] text-amber-400/80 font-bold uppercase tracking-wider font-mono">Warning (Orange)</p>
+                            <p id="flow-count-orange" class="text-xl font-extrabold text-amber-400 font-mono mt-0.5">0</p>
+                        </div>
+                        <span class="p-1.5 bg-amber-500/10 text-amber-400 rounded-lg">🟡</span>
+                    </div>
+                    <div class="bg-rose-950/20 border border-rose-500/20 p-4 rounded-xl flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] text-rose-400/80 font-bold uppercase tracking-wider font-mono">Critical (Red)</p>
+                            <p id="flow-count-red" class="text-xl font-extrabold text-rose-400 font-mono mt-0.5">0</p>
+                        </div>
+                        <span class="p-1.5 bg-rose-500/10 text-rose-400 rounded-lg">🔴</span>
+                    </div>
+                </div>
+
+                <!-- Sequence Flow Path Diagram Container -->
+                <div id="flow-path-container" class="bg-slate-950/40 border border-slate-800 rounded-2xl p-6 overflow-hidden">
+                    <div class="border-l-2 border-slate-800/80 ml-6 pl-8 space-y-6 relative" id="flow-steps-output">
+                        <!-- Instantiated Dynamically (cascading chronological list with nodes) -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Area: 3. ✨ AI Suites Hub Panel -->
+            <div id="panel-ai-suite" class="tab-panel hidden space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Left AI performance card -->
+                    <div class="bg-slate-800/30 border border-slate-800 rounded-2xl p-6 space-y-4 flex flex-col justify-between">
+                        <div class="space-y-2">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-indigo-400 text-lg">✨</span>
+                                <h3 class="text-sm font-bold text-slate-100">AI Performance Audit</h3>
+                            </div>
+                            <p class="text-xs text-slate-400 leading-relaxed">
+                                Evaluates overall timeline metrics, payload weights, DNS resolve times, and Core Web Vitals targets. Delivers critical actionable advice to shrink network footprints.
+                            </p>
+                        </div>
+                        <button onclick="runGeneralAiDiagnostics('performance')" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all duration-150 flex items-center justify-center space-x-1.5 shadow-lg shadow-indigo-600/15">
+                            <span>✨ Run Performance Analysis</span>
+                        </button>
+                    </div>
+
+                    <!-- Right AI security card -->
+                    <div class="bg-slate-800/30 border border-slate-800 rounded-2xl p-6 space-y-4 flex flex-col justify-between">
+                        <div class="space-y-2">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-indigo-400 text-lg">✨</span>
+                                <h3 class="text-sm font-bold text-slate-100">AI Security & Header Scan</h3>
+                            </div>
+                            <p class="text-xs text-slate-400 leading-relaxed">
+                                Scans for sensitive credentials leak paths, exposes absent security headers (HSTS, CSP, X-Frame), checks cookie vulnerabilities, and alerts on leaking stack signatures.
+                            </p>
+                        </div>
+                        <button onclick="runGeneralAiDiagnostics('security')" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold rounded-xl transition-all duration-150 flex items-center justify-center space-x-1.5">
+                            <span>✨ Run Security Scan</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- LLM Output Display Screen -->
+                <div id="ai-diagnostic-screen-container" class="hidden bg-slate-800/40 border border-slate-800 rounded-2xl p-6 space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping"></span>
+                            <span id="ai-screen-title" class="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">Generative Diagnostic output</span>
+                        </div>
+                        <button onclick="copyAiScreenOutput()" class="p-1.5 bg-slate-900 border border-slate-700 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-semibold flex items-center space-x-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                            <span id="ai-copy-btn-text">Copy Report</span>
+                        </button>
+                    </div>
+
+                    <div id="ai-screen-loading" class="hidden py-16 text-center space-y-4">
+                        <div class="relative w-12 h-12 mx-auto">
+                            <div class="absolute inset-0 rounded-full border-4 border-slate-800"></div>
+                            <div class="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-xs font-bold text-slate-200 animate-pulse">Invoking Gemini LLM Intelligence...</p>
+                            <p class="text-[10px] text-slate-400 max-w-xs mx-auto">This may take a moment as the entire HAR structure parameters are processed.</p>
+                        </div>
+                    </div>
+
+                    <div id="ai-screen-result-box" class="hidden bg-slate-950/60 border border-slate-800/60 p-6 rounded-xl overflow-y-auto max-h-[500px] custom-scrollbar">
+                        <div id="ai-screen-markdown-output" class="prose-custom"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Area: 4. Local Sanitizer (Security Gateway) -->
+            <div id="panel-sanitizer" class="tab-panel hidden space-y-6">
+                <div class="bg-slate-800/30 border border-slate-800 rounded-2xl p-6 space-y-4">
+                    <div class="flex items-start space-x-3">
+                        <div class="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-100">Client-Side Sanitization & Redaction Gateway</h3>
+                            <p class="text-sm text-slate-400 mt-0.5">Raw HAR files act as black-box recorders of unencrypted communication, potentially capturing active session tokens, authorization headers, and personal tracking data. Redact sensitive values locally in your browser before exporting or uploading to cloud instances.</p>
+                        </div>
+                    </div>
+
+                    <!-- Configuration Checklist -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-800">
+                        <div class="space-y-4">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Select Redaction Filters</h4>
+                            <div class="space-y-3 bg-slate-900/40 border border-slate-800 p-4 rounded-xl">
+                                <label class="flex items-start space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="sanitize-auth" checked class="mt-0.5 text-indigo-500 border-slate-700 rounded bg-slate-900 focus:ring-indigo-500">
+                                    <div>
+                                        <p class="text-xs font-bold text-slate-200">Redact Authentication Headers</p>
+                                        <p class="text-[10px] text-slate-400">Strips values for Authorization, Cookie, Proxy-Authorization, and X-API-Key</p>
+                                    </div>
+                                </label>
+                                <label class="flex items-start space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="sanitize-cookies" checked class="mt-0.5 text-indigo-500 border-slate-700 rounded bg-slate-900 focus:ring-indigo-500">
+                                    <div>
+                                        <p class="text-xs font-bold text-slate-200">Strip Server Cookies Arrays</p>
+                                        <p class="text-[10px] text-slate-400">Completely empties the request and response cookie dictionaries</p>
+                                    </div>
+                                </label>
+                                <label class="flex items-start space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="sanitize-query" class="mt-0.5 text-indigo-500 border-slate-700 rounded bg-slate-900 focus:ring-indigo-500">
+                                    <div>
+                                        <p class="text-xs font-bold text-slate-200">Mask Sensitive Query Parameters</p>
+                                        <p class="text-[10px] text-slate-400">Replaces values of common parameters (e.g., token, secret, code) with [REDACTED]</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Action Sandbox -->
+                        <div class="bg-indigo-950/10 border border-indigo-500/10 rounded-xl p-5 flex flex-col justify-between space-y-4">
+                            <div>
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400">Execute Local Clean</h4>
+                                <p class="text-xs text-slate-400 mt-1">This operation is performed completely client-side. No data is transmitted to our servers during the sanitization process.</p>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <button onclick="executeSanitisation()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all duration-150 flex items-center justify-center space-x-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                    <span>Download Sanitized HAR File</span>
+                                </button>
+                                <p id="sanitize-status" class="text-center text-[10px] text-slate-500 font-mono"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Area: 5. Consent Audit (GDPR Boundary Checker) -->
+            <div id="panel-consent" class="tab-panel hidden space-y-6">
+                <div class="bg-slate-800/30 border border-slate-800 rounded-2xl p-6 space-y-5">
+                    <div class="flex items-start space-x-3">
+                        <div class="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-100">GDPR Compliance & Cookie Consent Analyzer</h3>
+                            <p class="text-sm text-slate-400 mt-0.5">By regulatory mandate (GDPR/CCPA), third-party tracking scripts must not load or set cookies prior to the user expressing explicit consent. Map tracker fires against consent timestamps here.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-800">
+                        <div class="md:col-span-1 space-y-4">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Consent Event Configuration</h4>
+                            
+                            <div class="space-y-3 bg-slate-900/40 border border-slate-800 p-4 rounded-xl">
+                                <div class="space-y-1">
+                                    <label class="text-[10px] text-slate-400 font-bold uppercase">Define Consent Grant Offset (ms)</label>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="number" id="consent-offset-input" value="1000" oninput="auditConsentViolations()" class="w-full bg-slate-950 border border-slate-700/80 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 rounded-lg py-1.5 px-3 text-xs text-slate-100 font-mono outline-none">
+                                        <span class="text-xs text-slate-400 font-semibold">ms</span>
+                                    </div>
+                                    <p class="text-[10px] text-slate-500 mt-1">Simulates the precise millisecond threshold when a user clicked "Accept Cookies" during the session.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Audit Results -->
+                        <div class="md:col-span-2 space-y-4">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                                <span>Audit Violations Found</span>
+                                <span id="consent-violation-badge" class="px-2 py-0.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] rounded-full font-mono font-bold">0 Violations</span>
+                            </h4>
+
+                            <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-4 max-h-[220px] overflow-y-auto custom-scrollbar space-y-3" id="consent-violations-container">
+                                <p class="text-xs text-slate-500 text-center py-6">Load session log and adjust slider to detect pre-consent violations.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+
+        </div>
+    </main>
+
+    <!-- Footer Segment -->
+    <footer class="border-t border-slate-800 bg-slate-950 py-6 px-6 mt-12 text-center text-xs text-slate-500">
+        <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p>© 2026 AdvanceHAR Network Suite. Optimized for high-throughput containerized PaaS systems.</p>
+            <div class="flex space-x-4">
+                <a href="#" class="hover:text-slate-300 transition-colors">Documentation</a>
+                <a href="#" class="hover:text-slate-300 transition-colors">Privacy Policy</a>
+                <a href="#" class="hover:text-slate-300 transition-colors">W3C Schema Guidelines</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Load Application JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>

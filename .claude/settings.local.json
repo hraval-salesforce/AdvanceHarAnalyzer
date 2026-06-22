@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m py_compile app.py)",
+      "Bash(python3 -c \"import fastapi, uvicorn, msgspec, haralyzer, gunicorn\")",
+      "Bash(python3 -m py_compile /Users/hraval/Documents/SFCCprojects/GeminiHarAnalyzer/backend/app.py)",
+      "Bash(python3 -c \"import sys; print\\(sys.version\\)\")",
+      "Bash(python3 test_analyzer.py)",
+      "Bash(lsof -ti:3000)",
+      "Bash(curl -s http://localhost:8000)"
+    ]
+  }
+}

@@ -2,8 +2,10 @@ import os
 import re
 import json
 import httpx
+from pathlib import Path
 from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from haralyzer import HarParser
 from dotenv import load_dotenv
@@ -32,6 +34,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Get the base directory (project root)
+BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = BASE_DIR / "frontend"
+
+@app.get("/")
+async def read_root():
+    """Serve the main HAR analyzer HTML page"""
+    return FileResponse(str(FRONTEND_DIR / "har_analyzer.html"))
+
+# Mount static files directory (must be after route definitions to avoid conflicts)
+app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR / "static")), name="static")
 
 @app.post("/analyze")
 async def analyze_har_payload(file: UploadFile = File(...)):

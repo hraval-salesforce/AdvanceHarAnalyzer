@@ -1,10 +1,10 @@
 import os
 import re
+import json
 import httpx
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from msgspec import json as msgspec_json
 from haralyzer import HarParser
 from dotenv import load_dotenv
 from slowapi import Limiter
@@ -45,9 +45,9 @@ async def analyze_har_payload(file: UploadFile = File(...)):
     try:
         # Stream load file directly in memory for parsing validation
         content_stream = await file.read()
-        
-        # Memory-optimized parsing utilizing C-oriented msgspec decoders
-        decoded_data = msgspec_json.decode(content_stream)
+
+        # Parse JSON content
+        decoded_data = json.loads(content_stream)
         
         # Instantiate haralyzer compliance wrappers
         parser = HarParser(decoded_data)

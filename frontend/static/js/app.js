@@ -773,17 +773,17 @@
                 let descriptionNote = "";
 
                 if (duration < flowGreenLimit) {
-                    latencyClass = "border-emerald-500/20 bg-emerald-500/5 hover:border-emerald-500/40";
+                    latencyClass = "border-emerald-500/20 bg-emerald-500/5 hover:border-emerald-500/40 latency-green";
                     latencyBadgeColor = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
                     indicatorNodeColor = "bg-emerald-500 shadow-emerald-500/30";
                     descriptionNote = "🟢 Fast Asset Load Time — Optimized Resource";
                 } else if (duration >= flowGreenLimit && duration <= flowRedLimit) {
-                    latencyClass = "border-amber-500/20 bg-amber-500/5 hover:border-amber-500/40";
+                    latencyClass = "border-amber-500/20 bg-amber-500/5 hover:border-amber-500/40 latency-amber";
                     latencyBadgeColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
                     indicatorNodeColor = "bg-amber-500 shadow-amber-500/30";
                     descriptionNote = "🟡 Warning — Review compression or caching parameters";
                 } else {
-                    latencyClass = "border-rose-500/20 bg-rose-500/5 hover:border-rose-500/40";
+                    latencyClass = "border-rose-500/20 bg-rose-500/5 hover:border-rose-500/40 latency-rose";
                     latencyBadgeColor = "bg-rose-500/10 text-rose-400 border-rose-500/20";
                     indicatorNodeColor = "bg-rose-500 shadow-rose-500/30";
                     descriptionNote = "🔴 Critical Latency Bottleneck — Blocks UI execution";

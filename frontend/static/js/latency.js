@@ -8,9 +8,41 @@ let addCssToClass= function(className, css) {
         element.style.cssText += css;
     }
 }
+
+let addEventsToElement = function(className, event, callback) {
+    let elements = getElementsUsingClass(className);
+    for (let i = 0; i < elements.length; i++) {
+        let element = elements[i];
+        element.addEventListener(event, callback);
+    }
+}
 window.addEventListener('DOMContentLoaded', function() {
     // Add click handlers to the parent span elements with IDs
-    let emeraldLegend = document.getElementById("emerald-threshold-legend");
+
+    addEventsToElement('emerald-threshold', 'click', function() {
+        addCssToClass('latency-green','display:block !important;');
+        addCssToClass('latency-rose','display:none !important;');
+        addCssToClass('latency-amber','display:none !important;');
+    });
+    
+    addEventsToElement('amber-threshold', 'click', function() {
+        addCssToClass('latency-rose','display:none !important;');
+        addCssToClass('latency-green','display:none !important;');
+        addCssToClass('latency-amber','display:block !important;');
+    });
+
+    addEventsToElement('rose-threshold', 'click', function() {
+        addCssToClass('latency-amber','display:none !important;');
+        addCssToClass('latency-green','display:none !important;');
+        addCssToClass('latency-rose','display:block !important;');
+    });
+
+    addEventsToElement('show-all', 'click', function() {
+        addCssToClass('latency-green','display:block !important;');
+        addCssToClass('latency-amber','display:block !important;');
+        addCssToClass('latency-rose','display:block !important;');
+    });
+   /* let emeraldLegend = document.getElementById("emerald-threshold-legend");
     let amberLegend = document.getElementById("amber-threshold-legend");
     let roseLegend = document.getElementById("rose-threshold-legend");
     let showAllLegend = document.getElementById("show-all-legend");
@@ -45,5 +77,5 @@ window.addEventListener('DOMContentLoaded', function() {
             addCssToClass('latency-amber','display:block !important;');
             addCssToClass('latency-rose','display:block !important;');
         });
-    }
+    }*/
 });

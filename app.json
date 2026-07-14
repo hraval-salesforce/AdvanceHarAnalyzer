@@ -1,0 +1,42 @@
+{
+  "name": "AetherHAR Analytics",
+  "description": "Advanced HAR file analyzer with AI-powered insights",
+  "repository": "https://github.com/yourusername/AdvanceHarAnalyzer",
+  "keywords": ["har", "analytics", "performance", "fastapi"],
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "env": {
+    "ENVIRONMENT": {
+      "description": "Application environment (staging or production)",
+      "value": "staging",
+      "required": true
+    },
+    "GEMINI_API_KEY": {
+      "description": "Google Gemini API key for AI features",
+      "required": false
+    },
+    "CORS_ORIGINS": {
+      "description": "Comma-separated list of allowed CORS origins",
+      "required": false
+    },
+    "DEBUG": {
+      "description": "Enable debug mode",
+      "value": "false",
+      "required": true
+    },
+    "WEB_CONCURRENCY": {
+      "description": "Number of Gunicorn workers",
+      "value": "2",
+      "required": false
+    }
+  }
+}

@@ -11,25 +11,37 @@ from haralyzer import HarParser
 from dotenv import load_dotenv
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+import sys
+
+# Add parent directory to path to import config
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from config import get_config
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Get Gemini API key from environment
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# Get configuration based on environment
+config = get_config()
+GEMINI_API_KEY = config.GEMINI_API_KEY
 
-app = FastAPI(title="AetherHAR Analytics API", version="1.0.0")
+app = FastAPI(
+    title="AetherHAR Analytics API",
+    version="1.0.0",
+    debug=config.DEBUG
+)
 
 limiter = Limiter(key_func=get_remote_address)
+
+# Dynamic CORS origins based on environment
+cors_origins = config.CORS_ORIGINS if config.CORS_ORIGINS else [
+    "http://localhost:3000",
+    "http://localhost:8000",
+]
 
 # Enable CORS for external dashboard consumption
 app.add_middleware(
     CORSMiddleware,
-   allow_origins=[
-        "http://localhost:3000",  # Development
-        "https://yourdomain.com",  # Production
-        "https://www.yourdomain.com"
-    ],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -43,6 +55,15 @@ FRONTEND_DIR = BASE_DIR / "frontend"
 async def read_root():
     """Serve the main HAR analyzer HTML page"""
     return FileResponse(str(FRONTEND_DIR / "har_analyzer.html"))
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for monitoring"""
+    return {
+        "status": "healthy",
+        "environment": config.ENVIRONMENT,
+        "ai_configured": bool(GEMINI_API_KEY)
+    }
 
 # Mount static files directory (must be after route definitions to avoid conflicts)
 app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR / "static")), name="static")

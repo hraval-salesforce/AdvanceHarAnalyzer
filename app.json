@@ -21,7 +21,15 @@
       "required": true
     },
     "GEMINI_API_KEY": {
-      "description": "Google Gemini API key for AI features",
+      "description": "Google Gemini API key for AI features (legacy, optional)",
+      "required": false
+    },
+    "SECRET_KEY": {
+      "description": "Secret key for JWT token signing (generate with: openssl rand -hex 32)",
+      "required": true
+    },
+    "DATABASE_URL": {
+      "description": "PostgreSQL database URL (automatically set by Heroku Postgres addon)",
       "required": false
     },
     "CORS_ORIGINS": {
@@ -38,5 +46,13 @@
       "value": "2",
       "required": false
     }
-  }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:essential-0",
+      "options": {
+        "version": "15"
+      }
+    }
+  ]
 }

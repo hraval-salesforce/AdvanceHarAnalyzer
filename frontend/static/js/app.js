@@ -314,8 +314,51 @@
                     mime = entry.response.content.mimeType.toLowerCase();
                 }
 
-                // 1. Text Search Filter
-                if (searchQuery && !url.includes(searchQuery)) return false;
+                // 1. Text Search Filter — URL, headers, cookies, request/response body
+                if (searchQuery) {
+                    let matched = url.includes(searchQuery);
+
+                    if (!matched) {
+                        // Request headers
+                        matched = (entry.request.headers || []).some(h =>
+                            h.name.toLowerCase().includes(searchQuery) ||
+                            h.value.toLowerCase().includes(searchQuery)
+                        );
+                    }
+                    if (!matched) {
+                        // Response headers
+                        matched = (entry.response.headers || []).some(h =>
+                            h.name.toLowerCase().includes(searchQuery) ||
+                            h.value.toLowerCase().includes(searchQuery)
+                        );
+                    }
+                    if (!matched) {
+                        // Request cookies
+                        matched = (entry.request.cookies || []).some(c =>
+                            c.name.toLowerCase().includes(searchQuery) ||
+                            (c.value || '').toLowerCase().includes(searchQuery)
+                        );
+                    }
+                    if (!matched) {
+                        // Response cookies
+                        matched = (entry.response.cookies || []).some(c =>
+                            c.name.toLowerCase().includes(searchQuery) ||
+                            (c.value || '').toLowerCase().includes(searchQuery)
+                        );
+                    }
+                    if (!matched) {
+                        // Request POST body text
+                        const postText = entry.request.postData?.text || '';
+                        matched = postText.toLowerCase().includes(searchQuery);
+                    }
+                    if (!matched) {
+                        // Response body text
+                        const responseText = entry.response.content?.text || '';
+                        matched = responseText.toLowerCase().includes(searchQuery);
+                    }
+
+                    if (!matched) return false;
+                }
 
                 // 2. HTTP Method, Layer, and Latency Threshold Filters
                 if (selectedMethod !== 'ALL') {
@@ -1057,14 +1100,11 @@
         }
 
         // ==========================================
-        // ✨ GEMINI API LLM INTEGRATION MECHANICS
+        // ✨ CLAUDE API LLM INTEGRATION MECHANICS
         // ==========================================
         async function callGemini(systemPrompt, userQuery) {
-            // Call backend API proxy instead of Gemini directly (SECURITY FIX)
-            // This keeps the API key secure on the server-side
-            const backendUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                ? 'http://localhost:8000/api/ai/analyze'  // Local development
-                : '/api/ai/analyze';  // Production (same domain)
+            // Calls the secure backend Claude proxy - API key never exposed to frontend
+            const backendUrl = '/api/claude/analyze';
 
             try {
                 const response = await fetch(backendUrl, {
@@ -1073,26 +1113,29 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        system_prompt: systemPrompt,
-                        query: userQuery
+                        har_data: { system_prompt: systemPrompt },
+                        analysis_prompt: userQuery
                     })
                 });
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.detail || 'AI analysis failed');
+                    const detail = error.detail || 'AI analysis failed';
+                    if (response.status === 503) {
+                        throw new Error('No Claude API key configured. Please add one in the admin panel (/admin).');
+                    }
+                    throw new Error(detail);
                 }
 
                 const result = await response.json();
-                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
-                if (!text) {
+                if (!result.analysis) {
                     throw new Error("No response received from AI model");
                 }
 
-                return text;
+                return result.analysis;
             } catch (err) {
-                throw new Error(`Gemini AI error: ${err.message}`);
+                throw new Error(`${err.message}`);
             }
         }
 
@@ -1135,7 +1178,7 @@ Always include:
                 container.classList.remove('hidden');
             } catch (err) {
                 loading.classList.add('hidden');
-                output.innerHTML = `<div class="p-3 bg-rose-900/20 text-rose-400 rounded-lg border border-rose-800/50">Error calling Gemini API: ${err.message}</div>`;
+                output.innerHTML = `<div class="p-3 bg-rose-900/20 text-rose-400 rounded-lg border border-rose-800/50">Error calling Claude: ${err.message}</div>`;
                 container.classList.remove('hidden');
             }
         }
@@ -1221,7 +1264,7 @@ Format the report with these sections:
                 resultBox.classList.remove('hidden');
             } catch (err) {
                 loading.classList.add('hidden');
-                outputDiv.innerHTML = `<div class="p-3 bg-rose-900/20 text-rose-400 rounded-lg border border-rose-800/50 font-sans">Error invoking Gemini Engine: ${err.message}</div>`;
+                outputDiv.innerHTML = `<div class="p-3 bg-rose-900/20 text-rose-400 rounded-lg border border-rose-800/50 font-sans">Error invoking Claude: ${err.message}</div>`;
                 resultBox.classList.remove('hidden');
             }
         }

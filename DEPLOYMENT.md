@@ -18,7 +18,7 @@ This guide covers local development, staging, and production deployment workflow
    ```
 
 2. **Configure environment variables:**
-   - Edit `.env` file and add your `GEMINI_API_KEY`
+   - Edit `.env` file and add your `ANTHROPIC_API_KEY`
    - Adjust other settings as needed (PORT, DEBUG, etc.)
 
 3. **Start the development server:**

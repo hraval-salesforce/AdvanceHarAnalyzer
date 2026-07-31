@@ -3,7 +3,7 @@ import re
 import json
 import httpx
 from pathlib import Path
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,11 +11,16 @@ from haralyzer import HarParser
 from dotenv import load_dotenv
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from pydantic import BaseModel, Field
 import sys
 
 # Add parent directory to path to import config
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from config import get_config
+from backend.admin_routes import router as admin_router
+from backend.database import get_db, init_db
+from backend.claude_service import ClaudeService
+from sqlalchemy.orm import Session
 
 # Load environment variables from .env file
 load_dotenv()
@@ -26,11 +31,17 @@ GEMINI_API_KEY = config.GEMINI_API_KEY
 
 app = FastAPI(
     title="AetherHAR Analytics API",
-    version="1.0.0",
+    version="2.0.0",
     debug=config.DEBUG
 )
 
 limiter = Limiter(key_func=get_remote_address)
+
+# Initialize database on startup
+@app.on_event("startup")
+async def startup_event():
+    init_db()
+    print("✓ Application started successfully")
 
 # Dynamic CORS origins based on environment
 cors_origins = config.CORS_ORIGINS if config.CORS_ORIGINS else [
@@ -50,11 +61,27 @@ app.add_middleware(
 # Get the base directory (project root)
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
+ADMIN_DIR = BASE_DIR / "admin"
 
 @app.get("/")
 async def read_root():
     """Serve the main HAR analyzer HTML page"""
     return FileResponse(str(FRONTEND_DIR / "har_analyzer.html"))
+
+@app.get("/admin", include_in_schema=False)
+async def admin_redirect():
+    return FileResponse(str(ADMIN_DIR / "login.html"))
+
+@app.get("/admin/login.html", include_in_schema=False)
+async def admin_login():
+    return FileResponse(str(ADMIN_DIR / "login.html"))
+
+@app.get("/admin/dashboard.html", include_in_schema=False)
+async def admin_dashboard():
+    return FileResponse(str(ADMIN_DIR / "dashboard.html"))
+
+# Include admin API routes AFTER the HTML file routes
+app.include_router(admin_router)
 
 @app.get("/health")
 async def health_check():
@@ -131,12 +158,44 @@ async def analyze_har_payload(file: UploadFile = File(...)):
             content={"message": f"Fatal processing error: {str(err)}"}
         )
 
+# Pydantic models for Claude API requests
+class ClaudeAnalysisRequest(BaseModel):
+    har_data: dict = Field(..., description="Parsed HAR file data")
+    analysis_prompt: str = Field(..., min_length=1, max_length=2000, description="User's analysis question")
+
+
+@app.post("/api/claude/analyze")
+async def analyze_with_claude(
+    request: ClaudeAnalysisRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Analyze HAR data using Claude API (secure proxy endpoint).
+    The API key is retrieved from the database and never exposed to the frontend.
+
+    This replaces the Gemini endpoint with Claude for HAR analysis.
+    """
+    try:
+        claude_service = ClaudeService(db)
+        result = await claude_service.analyze_har_data(
+            har_data=request.har_data,
+            analysis_prompt=request.analysis_prompt
+        )
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Analysis failed: {str(e)}"
+        )
+
+
 @app.post("/api/ai/analyze")
 async def analyze_with_ai(request: dict):
     """
-    Proxy endpoint for Gemini API calls to keep API key secure on server-side.
-    This endpoint accepts AI analysis requests from the frontend and forwards
-    them to the Gemini API with the server's API key.
+    Legacy Gemini API endpoint (kept for backward compatibility).
+    Consider migrating to /api/claude/analyze for Claude-powered analysis.
     """
     if not GEMINI_API_KEY:
         raise HTTPException(
@@ -184,6 +243,5 @@ async def analyze_with_ai(request: dict):
 
 if __name__ == "__main__":
     import uvicorn
-    # Bind environment specified dynamic routing port or fallback to dev port
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("backend.app:app", host="0.0.0.0", port=port, reload=True)
